@@ -1,16 +1,12 @@
-# %%
-
 import sqlalchemy
 import pandas as pd
 import numpy as np
-from polygon import RESTClient
 from datetime import datetime, timedelta
 import datetime as dt
 import os
 from dotenv import load_dotenv
 from connect import engine, Base, DailyStockData, HourlyStockData, MinuteStockData
-from sqlalchemy import select, inspect
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select
 from sqlalchemy.sql import func
 import logging
 from log_config import setup_logging
@@ -19,24 +15,16 @@ from sqlalchemy.dialects.postgresql import insert
 import asyncio
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
-from concurrent.futures import ThreadPoolExecutor
 
-
-# %%
+# Setup logging
 setup_logging()
 
-# %%
+# Load environment variables
 load_dotenv()
-
-# %%
-# key = os.getenv("API_KEY")
-# client = RESTClient(api_key=key)
 
 
 class MarketDataUpdater:
-    " Class to update stock data from Polygon.io"
-    
-    def __init__(self, tickers, engine,key, start_date='2005-01-01', end_date=dt.date.today(), multiplier=1, timespan='day', limit=50000):
+    def __init__(self, tickers, engine, key, start_date='2005-01-01', end_date=dt.date.today(), multiplier=1, timespan='day', limit=50000):
         self.tickers = tickers if isinstance(tickers, list) else [tickers]
         self.engine = engine
         self.key = key
@@ -45,66 +33,49 @@ class MarketDataUpdater:
         self.multiplier = multiplier
         self.timespan = timespan
         self.limit = limit
-        logging.info(f"Initialized Market_Data_Updater with {len(self.tickers)} tickers.")
+        logging.info(f"Initialized MarketDataUpdater with {len(self.tickers)} tickers.")
 
-    async def transform_data(self, df, ticker):    
-        logging.info(f"Transforming data for ticker {ticker}")
-        df['date'] = pd.to_datetime(df['t'], unit='ms', utc=True).dt.tz_convert('US/Eastern').dt.tz_localize(None)
-        df = df.drop(columns=['otc']) if 'otc' in df.columns else df
-        df['ticker'] = ticker
-        df.rename(columns={
-            't': 'timestamp',
-            'v': 'volume',
-            'vw': 'vwap',
-            'o': 'open',
-            'c': 'close',
-            'h': 'high',
-            'l': 'low',
-            'n': 'transactions'
-        }, inplace=True)
-        transformed_data = df.to_dict(orient='records')
-        logging.info(f'Data transformed for ticker {ticker}')
-        return transformed_data
+    async def fetch_data(self, ticker, start_date):
+        all_results = []
+        current_start_date = start_date
+        async with httpx.AsyncClient() as async_client:
+            while True:
+                url = f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/{self.multiplier}/{self.timespan}/{current_start_date}/{self.end_date}"
+                params = {"limit": self.limit, "apiKey": self.key}
+                try:
+                    response = await async_client.get(url, params=params)
+                    response.raise_for_status()
+                    data = response.json()
+                    results = data.get('results', [])
+                    
+                    if not results:
+                        break
+
+                    all_results.extend(results)
+
+                    if len(results) < self.limit:
+                        break
+
+                    last_result_date = datetime.utcfromtimestamp(results[-1]['t'] / 1000)
+                    current_start_date = (last_result_date + timedelta(minutes=1)).strftime('%Y-%m-%d')
+
+                except httpx.HTTPStatusError as e:
+                    logging.error(f"HTTP error occurred: {e}")
+                    break
+                except Exception as e:
+                    logging.error(f"An error occurred: {e}")
+                    break
+
+        return all_results
 
     def get_table_name(self):
-        table_map = {'day': DailyStockData,
-                     'hour': HourlyStockData,
-                     'minute': MinuteStockData}
+        table_map = {'day': DailyStockData, 'hour': HourlyStockData, 'minute': MinuteStockData}
         if self.timespan not in table_map:
             logging.error(f'Invalid timespan {self.timespan}. Valid timespans are day, hour, minute.')
             raise ValueError(f"Timespan {self.timespan} is not valid.")
         return table_map[self.timespan]
 
-    def calculate_next_start_date(self, last_date, timespan):
-        logging.info(f"Calculating next start date for {timespan} data.")
-        eastern = pytz.timezone('US/Eastern')
-        current_time = datetime.now().astimezone(eastern)
-        market_close = current_time.replace(hour=20, minute=0, second=0, microsecond=0)
-
-        if timespan == 'day':
-            next_valid_time = last_date if current_time < market_close else last_date + timedelta(days=1)
-        elif timespan == 'hour':
-            if current_time.minute > 0:
-                next_valid_time = current_time.replace(minute=0, second=0, microsecond=0) - timedelta(hours=1)
-            else:
-                next_valid_time = current_time.replace(minute=0, second=0, microsecond=0)
-        elif timespan == 'minute':
-            if current_time.second > 0:
-                next_valid_time = current_time.replace(second=0, microsecond=0) - timedelta(minutes=1)
-            else:
-                next_valid_time = current_time.replace(second=0, microsecond=0)
-
-        logging.info(f"Next valid start date for {timespan} data is {next_valid_time}")
-        return next_valid_time
-
-    async def fetch_data(self, ticker, start_date):
-        url = f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/{self.multiplier}/{self.timespan}/{start_date}/{self.end_date}"
-        params = {"limit": self.limit, "apiKey": self.key}
-        async with httpx.AsyncClient() as async_client:
-            response = await async_client.get(url, params=params)
-            return response.json().get('results', [])
-
-    async def update_data(self, client):
+    async def update_data(self):
         all_data = []
         logging.debug(f'Starting data update process for {len(self.tickers)} tickers.')
 
@@ -120,10 +91,11 @@ class MarketDataUpdater:
                     last_date = result.scalar()
 
                     if last_date is not None:
-                        start_date = self.calculate_next_start_date(last_date, self.timespan)
-                        if start_date <= last_date:
-                            logging.info(f"No new data available for {ticker}.")
-                            continue
+                        eastern = pytz.timezone('US/Eastern')
+                        if last_date.tzinfo is None:
+                            last_date = eastern.localize(last_date)
+
+                        start_date = (last_date + timedelta(minutes=1)).strftime('%Y-%m-%d')
                     else:
                         start_date = self.start_date
 
@@ -137,15 +109,17 @@ class MarketDataUpdater:
                 if response:
                     ticker_df = pd.DataFrame(response)
                     if not ticker_df.empty:
+                        ticker_df = ticker_df.drop_duplicates(subset=['t'], keep='last')
                         transformed_data = await self.transform_data(ticker_df, ticker)
                         all_data.extend(transformed_data)
                     else:
                         logging.info(f"No new data available for ticker {ticker}.")
 
             if all_data:
+                logging.debug(f'Inserting data into the database for {len(all_data)} records.')
                 try:
                     table = StockDataClass.__table__
-                    batch_size = 1000  # Adjust the batch size to avoid exceeding the limit
+                    batch_size = 1000
                     for i in range(0, len(all_data), batch_size):
                         batch_data = all_data[i:i + batch_size]
                         stmt = insert(table).values(batch_data)
@@ -159,5 +133,34 @@ class MarketDataUpdater:
                     await conn.rollback()
             else:
                 logging.info("No data to update.")
+
+
+
+    async def transform_data(self, df, ticker):
+        logging.info(f"Transforming data for ticker {ticker}")
+        df['date'] = pd.to_datetime(df['t'], unit='ms', utc=True).dt.tz_convert('US/Eastern').dt.tz_localize(None)
+        if 'otc' in df.columns:
+            df = df.drop(columns=['otc'])
+        df['ticker'] = ticker
+        df.rename(columns={
+            't': 'timestamp',
+            'v': 'volume',
+            'vw': 'vwap',
+            'o': 'open',
+            'c': 'close',
+            'h': 'high',
+            'l': 'low',
+            'n': 'transactions'
+        }, inplace=True)
+        transformed_data = df.to_dict(orient='records')
+        logging.info(f'Data transformed for ticker {ticker}')
+        return transformed_data
+
+# if __name__ == '__main__':
+#     tickers = ['AAPL', 'MSFT']  
+#     key = os.getenv("API_KEY")
+
+#     updater = MarketDataUpdater(tickers, engine, key, start_date='2020-01-01', timespan='minute')
+#     asyncio.run(updater.update_data())
 
 
