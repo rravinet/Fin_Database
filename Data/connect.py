@@ -63,8 +63,8 @@ class HourlyStockData(Base):
         UniqueConstraint('ticker', 'date', name='unique_hourly_ticker_date'),
     )
 
-class MinuteStockData(Base):
-    __tablename__ = 'minute_stock_data'
+class OneMinuteStockData(Base):
+    __tablename__ = 'one_minute_stock_data'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
@@ -77,8 +77,43 @@ class MinuteStockData(Base):
     vwap: Mapped[float] = mapped_column(Float)
     transactions: Mapped[int] = mapped_column(Integer)
     __table_args__ = (
-        UniqueConstraint('ticker', 'date', name='unique_minute_ticker_date'),
+        UniqueConstraint('ticker', 'date', name='unique_one_minute_ticker_date'),
     )
+
+class FiveMinuteStockData(Base):
+    __tablename__ = 'five_minute_stock_data'
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    ticker: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
+    open: Mapped[float] = mapped_column(Float)
+    high: Mapped[float] = mapped_column(Float)
+    low: Mapped[float] = mapped_column(Float)
+    close: Mapped[float] = mapped_column(Float)
+    volume: Mapped[float] = mapped_column(Float)
+    vwap: Mapped[float] = mapped_column(Float)
+    transactions: Mapped[int] = mapped_column(Integer)
+    __table_args__ = (
+        UniqueConstraint('ticker', 'date', name='unique_five_minute_ticker_date'),
+    )
+
+class FifteenMinuteStockData(Base):
+    __tablename__ = 'fifteen_minute_stock_data'
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    ticker: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
+    open: Mapped[float] = mapped_column(Float)
+    high: Mapped[float] = mapped_column(Float)
+    low: Mapped[float] = mapped_column(Float)
+    close: Mapped[float] = mapped_column(Float)
+    volume: Mapped[float] = mapped_column(Float)
+    vwap: Mapped[float] = mapped_column(Float)
+    transactions: Mapped[int] = mapped_column(Integer)
+    __table_args__ = (
+        UniqueConstraint('ticker', 'date', name='unique_fifteen_minute_ticker_date'),
+    )
+
 
 class StockSplits(Base):
     __tablename__ = 'stock_splits'
@@ -98,13 +133,13 @@ class StockNews(Base):
     article_url: Mapped[str] = mapped_column(String, nullable=True)
     author: Mapped[str] = mapped_column(String, nullable=True)
     description: Mapped[str] = mapped_column(String, nullable=True)
-    id_polygon: Mapped[str] = mapped_column(String, nullable=True)  # Assuming 'id' from response is mapped to 'id_polygon'
-    keywords: Mapped[JSONB] = mapped_column(JSONB, nullable=True)  # Using JSONB to store list of strings
+    id_polygon: Mapped[str] = mapped_column(String, nullable=True)  
+    keywords: Mapped[JSONB] = mapped_column(JSONB, nullable=True)  
     published_utc: Mapped[DateTime] = mapped_column(DateTime, nullable=False, index=True)
-    tickers: Mapped[JSONB] = mapped_column(JSONB, nullable=True)  # Using JSONB to store list of strings
+    tickers: Mapped[JSONB] = mapped_column(JSONB, nullable=True)  
     ticker_queried: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
     title: Mapped[str] = mapped_column(String, nullable=True)
-    insights: Mapped[JSONB] = mapped_column(JSONB, nullable=True)  # Using JSONB to store array of insights
+    insights: Mapped[JSONB] = mapped_column(JSONB, nullable=True)  
     
     __table_args__ = (
         UniqueConstraint('published_utc', 'ticker_queried', name='unique_published_ticker'),

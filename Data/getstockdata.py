@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import datetime as dt
 import os
 from dotenv import load_dotenv
-from connect import engine, Base, DailyStockData, HourlyStockData, MinuteStockData
+from connect import engine, Base, DailyStockData, HourlyStockData, OneMinuteStockData,FiveMinuteStockData,FifteenMinuteStockData
 from sqlalchemy import select
 from sqlalchemy.sql import func
 import logging
@@ -69,9 +69,15 @@ class MarketDataUpdater:
         return all_results
 
     def get_table_name(self):
-        table_map = {'day': DailyStockData, 'hour': HourlyStockData, 'minute': MinuteStockData}
+        table_map = {
+            'minute': OneMinuteStockData,
+            '5minutes': FiveMinuteStockData,
+            '15minutes': FifteenMinuteStockData,
+            'hour': HourlyStockData,
+            'day': DailyStockData
+        }
         if self.timespan not in table_map:
-            logging.error(f'Invalid timespan {self.timespan}. Valid timespans are day, hour, minute.')
+            logging.error(f'Invalid timespan {self.timespan}. Valid timespans are minute, 5minute, 15minute, hour, day.')
             raise ValueError(f"Timespan {self.timespan} is not valid.")
         return table_map[self.timespan]
 
