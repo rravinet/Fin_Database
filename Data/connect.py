@@ -31,6 +31,7 @@ class Base(DeclarativeBase):
 # Define models
 class DailyStockData(Base):
     __tablename__ = 'daily_stock_data'
+    ticker_column = 'ticker'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
@@ -48,6 +49,7 @@ class DailyStockData(Base):
 
 class HourlyStockData(Base):
     __tablename__ = 'hourly_stock_data'
+    ticker_column = 'ticker'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
@@ -65,6 +67,7 @@ class HourlyStockData(Base):
 
 class OneMinuteStockData(Base):
     __tablename__ = 'one_minute_stock_data'
+    ticker_column = 'ticker'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
@@ -82,6 +85,7 @@ class OneMinuteStockData(Base):
 
 class FiveMinuteStockData(Base):
     __tablename__ = 'five_minute_stock_data'
+    ticker_column = 'ticker'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
@@ -99,6 +103,7 @@ class FiveMinuteStockData(Base):
 
 class FifteenMinuteStockData(Base):
     __tablename__ = 'fifteen_minute_stock_data'
+    ticker_column = 'ticker'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
@@ -117,6 +122,7 @@ class FifteenMinuteStockData(Base):
 
 class StockSplits(Base):
     __tablename__ = 'stock_splits'
+    ticker_column = 'ticker'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     execution_date: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
     split_from: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -129,6 +135,7 @@ class StockSplits(Base):
 
 class StockNews(Base):
     __tablename__ = 'stock_news'
+    ticker_column = 'ticker_queried'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     article_url: Mapped[str] = mapped_column(String, nullable=True)
     author: Mapped[str] = mapped_column(String, nullable=True)
@@ -148,6 +155,7 @@ class StockNews(Base):
     
 class CompanyFinancials(Base):
     __tablename__ = 'company_financials'
+    ticker_column = 'tickers'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     company_name: Mapped[str] = mapped_column(String, index=True)
     start_date: Mapped[DateTime] = mapped_column(DateTime, nullable=False, index=True)
@@ -167,6 +175,7 @@ class CompanyFinancials(Base):
 
 class StockTrades(Base):
     __tablename__ = 'stock_trades'
+    ticker_column = 'ticker_queried'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     conditions: Mapped[str] = mapped_column(String)
     date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
