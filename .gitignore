@@ -6,4 +6,5 @@ __pycache__/
 *.pyo
 .ipynb_checkpoints/
 *.ipynb
-alembic/versions/
+alembic/
+alembic.ini
