@@ -1,6 +1,9 @@
 .env
 *.log
-.DS_Store
+*.DS_Store
 .gitattributes
 *.pyc
 __pycache__/
+*ipynb
+*/alembic
+.ini
