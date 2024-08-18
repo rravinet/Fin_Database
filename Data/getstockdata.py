@@ -35,15 +35,49 @@ class MarketDataUpdater:
         self.limit = limit
         logging.info(f"Initialized MarketDataUpdater with {len(self.tickers)} tickers.")
 
+    # async def fetch_data(self, ticker, start_date):
+    #     all_results = []
+    #     current_start_date = start_date
+    #     async with httpx.AsyncClient() as async_client:
+    #         while True:
+    #             url = f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/{self.multiplier}/{self.timespan}/{current_start_date}/{self.end_date}"
+    #             params = {"limit": self.limit, "apiKey": self.key}
+    #             try:
+    #                 response = await async_client.get(url, params=params)
+    #                 response.raise_for_status()
+    #                 data = response.json()
+    #                 results = data.get('results', [])
+                    
+    #                 if not results:
+    #                     break
+
+    #                 all_results.extend(results)
+
+    #                 if len(results) < self.limit:
+    #                     break
+
+    #                 last_result_date = datetime.utcfromtimestamp(results[-1]['t'] / 1000)
+    #                 current_start_date = (last_result_date + timedelta(minutes=1)).strftime('%Y-%m-%d')
+
+    #             except httpx.HTTPStatusError as e:
+    #                 logging.error(f"HTTP error occurred: {e}")
+    #                 break
+    #             except Exception as e:
+    #                 logging.error(f"An error occurred: {e}")
+    #                 break
+
+    #     return all_results
+    
+    
     async def fetch_data(self, ticker, start_date):
         all_results = []
-        current_start_date = start_date
+        current_url = f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/{self.multiplier}/{self.timespan}/{start_date}/{self.end_date}"
+        params = {"limit": self.limit, "apiKey": self.key}
+    
         async with httpx.AsyncClient() as async_client:
-            while True:
-                url = f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/{self.multiplier}/{self.timespan}/{current_start_date}/{self.end_date}"
-                params = {"limit": self.limit, "apiKey": self.key}
+            while current_url:
                 try:
-                    response = await async_client.get(url, params=params)
+                    response = await async_client.get(current_url, params=params)
                     response.raise_for_status()
                     data = response.json()
                     results = data.get('results', [])
@@ -53,11 +87,10 @@ class MarketDataUpdater:
 
                     all_results.extend(results)
 
-                    if len(results) < self.limit:
-                        break
+                    current_url = data.get('next_url')
 
-                    last_result_date = datetime.utcfromtimestamp(results[-1]['t'] / 1000)
-                    current_start_date = (last_result_date + timedelta(minutes=1)).strftime('%Y-%m-%d')
+                    if not current_url:
+                        break
 
                 except httpx.HTTPStatusError as e:
                     logging.error(f"HTTP error occurred: {e}")
@@ -67,6 +100,7 @@ class MarketDataUpdater:
                     break
 
         return all_results
+
 
     def get_table_name(self):
         table_map = {
