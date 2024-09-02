@@ -16,10 +16,9 @@ import asyncio
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# Setup logging
+
 setup_logging()
 
-# Load environment variables
 load_dotenv()
 
 class CompanyFinancialsupdater:
@@ -31,25 +30,24 @@ class CompanyFinancialsupdater:
     async def transform_data(self, df):
         logging.info(f"Transforming data for {len(df)} records")
 
-        # Convert date fields to datetime
         df['start_date'] = pd.to_datetime(df['start_date'], errors='coerce')
         df['end_date'] = pd.to_datetime(df['end_date'], errors='coerce')
         df['filing_date'] = pd.to_datetime(df['filing_date'], errors='coerce')
         df['acceptance_datetime'] = pd.to_datetime(df['acceptance_datetime'], format='%Y%m%d%H%M%S', errors='coerce')
 
-        # Replace NaT values with None
+        # Replacing NaT values with None
         for col in ['start_date', 'end_date', 'filing_date', 'acceptance_datetime']:
             df[col] = df[col].replace({pd.NaT: None})
 
 
-        # Ensure tickers is a comma-separated string
+        # Ensuring tickers is a comma-separated string
         df['tickers'] = df['tickers'].apply(lambda x: ','.join(x) if isinstance(x, list) else x)
 
-        # Ensure sic is converted to integer if present
+        # Ensuring sic is converted to integer if present
         if 'sic' in df.columns:
             df['sic'] = pd.to_numeric(df['sic'], errors='coerce').astype('Int64', errors='ignore')
 
-        # Drop unnecessary columns if they exist
+        # Drop unnecessary columns
         columns_to_drop = ['cik', 'source_filing_file_url', 'source_filing_url']
         df = df.drop(columns=[col for col in columns_to_drop if col in df.columns])
 
@@ -59,13 +57,10 @@ class CompanyFinancialsupdater:
         if 'financials' in df.columns:
             df['financials'] = df['financials'].apply(json.dumps)
 
-        # Remove duplicates
         df = df.drop_duplicates(subset=['start_date', 'tickers'], keep='last')
 
-        # Drop rows where start_date is None
         df = df.dropna(subset=['start_date'])
         
-        # Convert DataFrame to list of dictionaries
         transformed_df = df.to_dict(orient='records')
 
         
@@ -119,7 +114,7 @@ class CompanyFinancialsupdater:
                 logging.info("No data to update.")
 
 # if __name__ == '__main__':
-#     tickers = ['AAPL', 'MSFT']  # Example tickers
+#     tickers = ['AAPL', 'MSFT'] 
 #     key = os.getenv("API_KEY")
 
 #     company_financials_updater = CompanyFinancialsupdater(tickers, engine, key)

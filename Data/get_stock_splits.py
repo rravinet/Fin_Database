@@ -16,10 +16,10 @@ import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert
 
-# Setup logging
+
 setup_logging()
 
-# Load environment variables
+
 load_dotenv()
 
 class StockSplitsupdate:

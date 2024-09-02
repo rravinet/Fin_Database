@@ -27,12 +27,12 @@ djia_ticker_list = wiki + '/Dow_Jones_Industrial_Average'
 sp500_tickers_list = wiki + '/List_of_S%26P_500_companies'
 tickersSP500 = pd.read_html(sp500_tickers_list)[0].Symbol.to_list()
 djia_tickers = pd.read_html(djia_ticker_list)[1].Symbol.to_list()
-
+tickers = ['AMZN', 'DIS', 'JPM', 'V', 'NIKE']
 # %%
 company_financials_updater = CompanyFinancialsupdater(tickers=djia_tickers, engine=engine, key=key)
-daily_market_data_updater = MarketDataUpdater(tickers=djia_tickers, engine=engine, key=key, start_date='2000-01-05')
-hourly_market_data_updater = MarketDataUpdater(tickers=djia_tickers, engine=engine, key=key, start_date='2000-01-05',timespan='hour')
-minute_market_data_updater = MarketDataUpdater(tickers= ['AAPL', 'MSFT'], engine=engine, key=key, start_date='2000-01-05', timespan='minute')
+daily_market_data_updater = MarketDataUpdater(tickers=['SPY'], engine=engine, key=key, start_date='2000-01-05')
+hourly_market_data_updater = MarketDataUpdater(tickers=['SPY'], engine=engine, key=key, start_date='2000-01-05',timespan='hour')
+minute_market_data_updater = MarketDataUpdater(tickers=['SPY'], engine=engine, key=key, start_date='2000-01-05', timespan='minute')
 news_update = NewsUpdate(tickers=djia_tickers, engine=engine, key=key)
 stock_splits_update = StockSplitsupdate(tickers=djia_tickers, engine=engine, key=key)
 
@@ -40,9 +40,9 @@ stock_splits_update = StockSplitsupdate(tickers=djia_tickers, engine=engine, key
 async def main():
     await asyncio.gather(
         # company_financials_updater.update_data(),
-        # daily_market_data_updater.update_data(),
+        daily_market_data_updater.update_data(),
         hourly_market_data_updater.update_data(),
-        # minute_market_data_updater.update_data(),
+        minute_market_data_updater.update_data(),
         # news_update.update_data(),
         # stock_splits_update.update_data()
     )
