@@ -66,14 +66,36 @@ class CompanyFinancialsupdater:
         
         return transformed_df
 
+
+
     async def fetch_data(self, ticker):
         url = f"https://api.polygon.io/vX/reference/financials?ticker={ticker}"
         params = {"apiKey": self.key}
+        all_results = []  
+
         async with httpx.AsyncClient() as async_client:
-            response = await async_client.get(url, params=params)
-            data = response.json().get('results', [])
-            logging.info(f"Fetched {len(data)} records for {ticker}")
-            return data
+            while url:  # Loop until there's no more next_url
+                try:
+                    response = await async_client.get(url, params=params)
+                    response.raise_for_status()  # Ensure we handle any HTTP errors
+                    data = response.json()
+
+                    # Add current page of data to the list
+                    results = data.get('results', [])
+                    all_results.extend(results)
+
+                    url = data.get('next_url', None)  # If no next_url, this will stop the loop
+
+                    logging.info(f"Fetched {len(results)} records for {ticker}, moving to next page.")
+
+                except httpx.HTTPStatusError as e:
+                    logging.error(f"HTTP error occurred: {e}")
+                    break
+                except Exception as e:
+                    logging.error(f"An error occurred: {e}")
+                    break
+
+        return all_results
 
     async def update_data(self):
         all_data = []

@@ -39,10 +39,10 @@ stock_splits_update = StockSplitsupdate(tickers=djia_tickers, engine=engine, key
 # %%
 async def main():
     await asyncio.gather(
-        # company_financials_updater.update_data(),
-        daily_market_data_updater.update_data(),
-        hourly_market_data_updater.update_data(),
-        minute_market_data_updater.update_data(),
+        company_financials_updater.update_data(),
+        # daily_market_data_updater.update_data(),
+        # hourly_market_data_updater.update_data(),
+        # minute_market_data_updater.update_data(),
         # news_update.update_data(),
         # stock_splits_update.update_data()
     )
