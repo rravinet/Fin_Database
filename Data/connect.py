@@ -169,8 +169,11 @@ class CompanyFinancials(Base):
     tickers: Mapped[str] = mapped_column(String)
     sic: Mapped[int] = mapped_column(Integer, nullable=True)
 
+    # __table_args__ = (
+    #     UniqueConstraint('tickers', 'start_date', name='unique_ticker_start_date'),
+    # )
     __table_args__ = (
-        UniqueConstraint('tickers', 'start_date', name='unique_ticker_start_date'),
+        UniqueConstraint('tickers', 'start_date', 'fiscal_period', name='unique_ticker_start_date_fiscal_period'),
     )
 
 class StockTrades(Base):

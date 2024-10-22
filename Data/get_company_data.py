@@ -57,9 +57,9 @@ class CompanyFinancialsupdater:
         if 'financials' in df.columns:
             df['financials'] = df['financials'].apply(json.dumps)
 
-        df = df.drop_duplicates(subset=['start_date', 'tickers'], keep='last')
+        # df = df.drop_duplicates(subset=['start_date', 'tickers'], keep='last')
 
-        df = df.dropna(subset=['start_date'])
+        # df = df.dropna(subset=['start_date'])
         
         transformed_df = df.to_dict(orient='records')
 
@@ -124,8 +124,17 @@ class CompanyFinancialsupdater:
                     batch_size = 1000
                     for i in range(0, len(all_data), batch_size):
                         batch_data = all_data[i:i + batch_size]
+                        
                         stmt = insert(table).values(batch_data)
-                        update_dict = {c.name: c for c in stmt.excluded if c.name not in ['tickers', 'start_date']}
+                        # Dictionary for the columns to update in case of conflict
+                        update_dict = {c.name: c for c in CompanyFinancials.__table__.columns if c.name not in ['tickers', 'start_date', 'fiscal_period']}
+                        
+                        # Add conflict handling
+                        stmt = stmt.on_conflict_do_update(
+                            index_elements=['tickers', 'start_date', 'fiscal_period'],  # Include fiscal_period
+                            set_=update_dict  # Use the prebuilt update dictionary
+                        )
+                        
                         await conn.execute(stmt)
                     await conn.commit()
                     logging.info(f"Data successfully updated for {len(all_data)} records")
@@ -134,6 +143,10 @@ class CompanyFinancialsupdater:
                     await conn.rollback()
             else:
                 logging.info("No data to update.")
+
+
+
+
 
 # if __name__ == '__main__':
 #     tickers = ['AAPL', 'MSFT'] 
